@@ -128,13 +128,13 @@
       return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
     }
 
-    // Live format while typing
+    let rawPhone = '';
     phoneInput.addEventListener('input', (e) => {
-      const raw = e.target.value.replace(/\D/g, '').slice(0, 10);
+      rawPhone = e.target.value.replace(/\D/g, '').slice(0, 10);
       const parts = [];
-      if (raw.length > 0) parts.push('(' + raw.slice(0, 3));
-      if (raw.length >= 4) parts.push(') ' + raw.slice(3, 6));
-      if (raw.length >= 7) parts.push('-' + raw.slice(6));
+      if (rawPhone.length > 0) parts.push('(' + rawPhone.slice(0, 3));
+      if (rawPhone.length >= 4) parts.push(') ' + rawPhone.slice(3, 6));
+      if (rawPhone.length >= 7) parts.push('-' + rawPhone.slice(6));
       e.target.value = parts.join('').replace(/\(\)/g, '');
     });
 
@@ -149,8 +149,7 @@
       const data = Object.fromEntries(formData);
 
       const timestamp = new Date().toISOString();
-      const formattedPhone = formatPhoneNumber(data.phone);
-      if (!formattedPhone) {
+      if (rawPhone.length !== 10) {
         errorMessage.textContent = 'Invalid phone number format.';
         errorMessage.style.display = 'block';
         submitBtn.disabled = false;
@@ -158,17 +157,22 @@
         return;
       }
 
+      const formattedPhone = formatPhoneNumber(rawPhone);
       const apiKey = 'patNz4xCr0JGARjOp.b26cc0771739a442aac15abd4a15f8cf540a4d34b5824adc063af66a44667227';
       const baseId = 'appySt7Fu5pPyR4jy';
       const sampleOrdersTable = 'Sample Orders';
       const smsTable = 'SMS';
 
       try {
-        const queryUrl = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(sampleOrdersTable)}?filterByFormula=AND({Phone Number}='${formattedPhone}', {Customer Email}='${data.email}')`;
+        const queryUrl = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(sampleOrdersTable)}?filterByFormula=AND({Phone Number}='${rawPhone}', {Customer Email}='${data.email}')`;
+        console.log('Airtable Query URL:', queryUrl);
+
         const matchRes = await fetch(queryUrl, {
           headers: { Authorization: `Bearer ${apiKey}` },
         });
+
         const matchData = await matchRes.json();
+        console.log('Airtable Response:', matchData);
 
         if (matchData.records && matchData.records.length > 0) {
           const fullName = `${data.firstName} ${data.lastName}`;
@@ -176,8 +180,8 @@
             fields: {
               'Customer Name': fullName,
               'Customer Email': data.email,
-              'Phone Number': formattedPhone,
-              'Opt In Status': true,
+              'Phone Number': rawPhone,
+              'Opt In Status': ['True'],
               'Timestamp': timestamp,
             },
           };
