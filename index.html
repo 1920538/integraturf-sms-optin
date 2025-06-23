@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SMS Opt-In Form - IntegriTurf</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -91,30 +91,37 @@
     <h2>Please provide your contact details</h2>
     <form id="optin-form">
       <label for="firstName">First Name*</label>
-      <input type="text" name="firstName" required />
+      <input type="text" name="firstName" required>
+
       <label for="lastName">Last Name*</label>
-      <input type="text" name="lastName" required />
+      <input type="text" name="lastName" required>
+
       <label for="email">Email*</label>
-      <input type="email" name="email" required />
+      <input type="email" name="email" required>
+
       <label for="phone">Phone Number*</label>
-      <input type="tel" name="phone" required />
+      <input type="tel" name="phone" required>
+
       <div class="checkbox-group">
-        <input type="checkbox" name="offers" />
+        <input type="checkbox" name="offers">
         <label for="offers">I would like to receive offers and news</label>
       </div>
+
       <div class="checkbox-group">
-        <input type="checkbox" name="terms" required />
+        <input type="checkbox" name="terms" required>
         <label for="terms">I accept the <a href="privacy.html" target="_blank">Privacy Policy</a> and Terms of Service</label>
       </div>
+
       <button type="submit" id="submitBtn">Submit</button>
       <div class="error-message" id="errorMessage">We couldn't find a matching record. Please double-check your info or call your sales rep at (858) 555-3421.</div>
     </form>
     <div class="privacy-note">
-      By providing your phone number you agree to receive informational text messages from IntegriTurf. Consent is not a condition of purchase. Msg & data rates may apply. Reply STOP to cancel.<br />
+      By providing your phone number you agree to receive informational text messages from IntegriTurf. Consent is not a condition of purchase. Msg & data rates may apply. Reply STOP to cancel.<br>
       View our <a href="privacy.html" target="_blank">Privacy Policy</a>
     </div>
   </div>
 
+<!-- Script will run once DOM is ready -->
 <script>
   window.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('optin-form');
@@ -164,7 +171,9 @@
       const smsTable = 'SMS';
 
       try {
-        const queryUrl = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(sampleOrdersTable)}?filterByFormula=AND({Phone Number}='${rawPhone}', {Customer Email}='${data.email}')`;
+        const formula = `AND({Phone Number}='${rawPhone}', {Customer Email}='${data.email}')`;
+        const encodedFormula = encodeURIComponent(formula);
+        const queryUrl = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(sampleOrdersTable)}?filterByFormula=${encodedFormula}`;
         console.log('Airtable Query URL:', queryUrl);
 
         const matchRes = await fetch(queryUrl, {
