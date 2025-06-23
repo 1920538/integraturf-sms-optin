@@ -164,7 +164,7 @@
         return;
       }
 
-      const zapierWebhookUrl = 'https://hook.us2.make.com/i3nrvssa4ndfolnekm8x51a20wqk1ecc';
+      const makeWebhookUrl = 'https://hook.us2.make.com/i3nrvssa4ndfolnekm8x51a20wqk1ecc';
 
       try {
         const payload = {
@@ -176,9 +176,9 @@
           timestamp: timestamp
         };
 
-        console.log('Sending payload to Zapier:', payload);
+        console.log('Sending payload to Make:', payload);
 
-        const zapRes = await fetch(zapierWebhookUrl, {
+        const zapRes = await fetch(makeWebhookUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -189,7 +189,7 @@
         if (zapRes.ok) {
           window.location.href = 'success.html';
         } else {
-          throw new Error('Zapier webhook failed');
+          throw new Error('Make webhook failed');
         }
       } catch (err) {
         console.error('Error:', err);
@@ -203,4 +203,3 @@
 </script>
 </body>
 </html>
- 
