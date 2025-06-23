@@ -168,13 +168,15 @@
 
       try {
         const payload = {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          email: data.email || '',
           phone: rawPhone,
-          offers: data.offers || false,
+          offers: data.offers ? true : false,
           timestamp: timestamp
         };
+
+        console.log('Sending payload to Zapier:', payload);
 
         const zapRes = await fetch(zapierWebhookUrl, {
           method: 'POST',
