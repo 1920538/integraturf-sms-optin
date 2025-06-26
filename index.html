@@ -186,15 +186,23 @@
           body: JSON.stringify(payload)
         });
 
-        const response = await zapRes.json();
-        console.log('Make response:', response);
-        if (response.status === 'success') {
-          window.location.href = 'success.html';
-        } else {
-          errorMessage.textContent = "We couldn't find a matching record. Please double-check your info.";
+        const text = await zapRes.text();
+        let response;
+        try {
+          response = JSON.parse(text);
+          console.log('Make response:', response);
+          if (response.status === 'success') {
+            window.location.href = 'success.html';
+          } else {
+            throw new Error('No match');
+          }
+        } catch (err) {
+          console.error('Invalid response from Make:', err, text);
+          errorMessage.textContent = "We couldn't process your info. Please check your details or call your rep.";
           errorMessage.style.display = 'block';
           submitBtn.disabled = false;
           submitBtn.textContent = 'Submit';
+        }
         }
 
       } catch (err) {
