@@ -195,9 +195,7 @@
           submitBtn.disabled = false;
           submitBtn.textContent = 'Submit';
         }
-      } catch (err) {
-          throw new Error('Make webhook failed');
-        }
+
       } catch (err) {
         console.error('Error:', err);
         errorMessage.textContent = "Something went wrong. Please try again later or call your sales rep at (858) 555-3421.";
