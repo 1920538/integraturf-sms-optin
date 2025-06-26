@@ -187,6 +187,7 @@
         });
 
         const response = await zapRes.json();
+        console.log('Make response:', response);
         if (response.status === 'success') {
           window.location.href = 'success.html';
         } else {
