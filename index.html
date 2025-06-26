@@ -186,9 +186,16 @@
           body: JSON.stringify(payload)
         });
 
-        if (zapRes.ok) {
+        const response = await zapRes.json();
+        if (response.status === 'success') {
           window.location.href = 'success.html';
         } else {
+          errorMessage.textContent = "We couldn't find a matching record. Please double-check your info.";
+          errorMessage.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+        }
+      } catch (err) {
           throw new Error('Make webhook failed');
         }
       } catch (err) {
