@@ -3,9 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
   <title>SMS Opt-In Form - IntegriTurf</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -14,19 +11,22 @@
       background-color: #f8f9fa;
       margin: 0;
       padding: 20px;
+      min-height: 100vh;
       display: flex;
       justify-content: center;
-      align-items: center;
-      height: 100vh;
+      align-items: flex-start;
+      box-sizing: border-box;
+      overflow-x: hidden;
     }
+    
     .form-container {
-      background: #ffffff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      max-width: 500px;
+      max-width: 90%;
       width: 100%;
+      padding: 20px;
+      margin: 0 auto;
+      box-sizing: border-box;
     }
+    
     h2 {
       font-size: 24px;
       margin-bottom: 20px;
@@ -87,6 +87,24 @@
       color: #7CB342;
       text-decoration: none;
     }
+    
+
+    @media (max-width: 600px) {
+      .form-container {
+        padding: 16px;
+      }
+    
+      label {
+        font-size: 14px;
+        line-height: 1.5;
+      }
+    
+      input[type="checkbox"] {
+        transform: scale(1.2);
+        margin-right: 8px;
+      }
+    }
+    
   </style>
 </head>
 <body>
@@ -100,19 +118,27 @@
       <input type="text" name="lastName" required>
 
       <label for="email">Email*</label>
-      <input type="email" name="email" required>
+      <input type="email" name="email" id="email" required>
+      <div class="inline-error" id="emailError"></div>
 
       <label for="phone">Phone Number*</label>
-      <input type="tel" name="phone" required>
+      <input type="tel" name="phone" id="phone" required>
+      <div class="inline-error" id="phoneError"></div>
 
       <div class="checkbox-group">
-        <input type="checkbox" name="offers">
-        <label for="offers">I would like to receive offers and news</label>
+        
+        <label>
+          <input type="checkbox" name="marketing_optin">
+          I authorize Integrituf to send text messages (marketing/promotional), possibly using automated technology, to the phone number I provide. Message and data rates may apply. Message frequency varies. To opt out, reply STOP. For help, reply HELP.
+        </label>
       </div>
 
       <div class="checkbox-group">
-        <input type="checkbox" name="terms" required>
-        <label for="terms">I accept the <a href="privacy.html" target="_blank">Privacy Policy</a> and Terms of Service</label>
+        
+        <label>
+          <input type="checkbox" name="transactional_optin">
+          I authorize Integrituf to send account-related text messages (e.g., order updates, shipping notifications, billing alerts), possibly using automated technology, to the phone number I provide. Message and data rates may apply. Message frequency varies. To opt out, reply STOP. For help, reply HELP.
+        </label>
       </div>
 
       <button type="submit" id="submitBtn">Submit</button>
@@ -124,105 +150,169 @@
     </div>
   </div>
 
-<script>
-  window.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('optin-form');
-    const submitBtn = document.getElementById('submitBtn');
-    const errorMessage = document.getElementById('errorMessage');
-    const phoneInput = form.querySelector('input[name="phone"]');
-    if (!form || !submitBtn || !errorMessage || !phoneInput) return;
-
-    // Fix for browser back button preserving submit state
-    if (performance.navigation.type === 2 || performance.getEntriesByType("navigation")[0].type === "back_forward") {
-      form.reset();
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit';
+  <style>
+    .inline-error {
+      font-size: 13px;
+      color: #d32f2f;
+      margin-top: 4px;
+      display: none;
     }
-
-    function formatPhoneNumber(raw) {
+  </style>
+  
+  <script>
+    function formatPhoneForAirtable(raw) {
       const digits = raw.replace(/\D/g, '');
-      if (digits.length !== 10) return null;
+      if (digits.length !== 10) return raw;
       return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
     }
-
-    let rawPhone = '';
-    phoneInput.addEventListener('input', (e) => {
-      rawPhone = e.target.value.replace(/\D/g, '').slice(0, 10);
-      const parts = [];
-      if (rawPhone.length > 0) parts.push('(' + rawPhone.slice(0, 3));
-      if (rawPhone.length >= 4) parts.push(') ' + rawPhone.slice(3, 6));
-      if (rawPhone.length >= 7) parts.push('-' + rawPhone.slice(6));
-      e.target.value = parts.join('').replace(/\(\)/g, '');
-    });
-
-    form.addEventListener('submit', async function (e) {
-      e.preventDefault();
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting...';
-      errorMessage.style.display = 'none';
-
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData);
-
-      const timestamp = new Date().toISOString();
-      if (rawPhone.length !== 10) {
-        errorMessage.textContent = 'Invalid phone number format.';
-        errorMessage.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit';
-        return;
-      }
-
-      const makeWebhookUrl = 'https://hook.us2.make.com/k92h9keuxj88m49dirrtfo3jbnlyi5za';
-
-      try {
-        const payload = {
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          email: data.email || '',
-          phone: rawPhone,
-          offers: data.offers ? true : false,
-          timestamp: timestamp
-        };
-
-        console.log('Sending payload to Make:', payload);
-
-        const zapRes = await fetch(makeWebhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        const text = await zapRes.text();
-        let response;
+  
+    window.addEventListener('DOMContentLoaded', function () {
+      const form = document.getElementById('optin-form');
+      const submitBtn = document.getElementById('submitBtn');
+      const errorMessage = document.getElementById('errorMessage');
+      const phoneInput = document.querySelector('input[name="phone"]');
+      const emailInput = document.querySelector('input[name="email"]');
+  
+      const marketingOptIn = form.querySelector('input[name="marketing_optin"]');
+      const transactionalOptIn = form.querySelector('input[name="transactional_optin"]');
+  
+      // Add inline error containers
+      emailInput.insertAdjacentHTML('afterend', '<div class="inline-error" id="emailError"></div>');
+      phoneInput.insertAdjacentHTML('afterend', '<div class="inline-error" id="phoneError"></div>');
+      const emailError = document.getElementById('emailError');
+      const phoneError = document.getElementById('phoneError');
+  
+      let rawPhone = '';
+  
+      // Format phone while typing
+      phoneInput.addEventListener('input', (e) => {
+        rawPhone = e.target.value.replace(/\D/g, '').slice(0, 10);
+        const parts = [];
+        if (rawPhone.length > 0) parts.push('(' + rawPhone.slice(0, 3));
+        if (rawPhone.length >= 4) parts.push(') ' + rawPhone.slice(3, 6));
+        if (rawPhone.length >= 7) parts.push('-' + rawPhone.slice(6));
+        e.target.value = parts.join('').replace(/\(\)/g, '');
+  
+        if (rawPhone.length !== 10 && rawPhone !== '') {
+          phoneError.textContent = 'Phone number must be 10 digits.';
+          phoneError.style.display = 'block';
+        } else {
+          phoneError.style.display = 'none';
+        }
+      });
+  
+      // Real-time email validation
+      emailInput.addEventListener('input', () => {
+        const value = emailInput.value.trim();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+        if (value === '') {
+          emailError.style.display = 'none';
+        } else if (!emailPattern.test(value)) {
+          emailError.textContent = 'Please enter a valid email address.';
+          emailError.style.display = 'block';
+        } else {
+          emailError.style.display = 'none';
+        }
+      });
+  
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+  
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        errorMessage.style.display = 'none';
+  
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+        const timestamp = new Date().toISOString();
+  
+        // Re-check email validity
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(data.email)) {
+          emailError.textContent = 'Please enter a valid email address.';
+          emailError.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+          return;
+        }
+  
+        // Re-check phone validity
+        if (rawPhone.length !== 10) {
+          phoneError.textContent = 'Phone number must be 10 digits.';
+          phoneError.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+          return;
+        }
+  
+        // Check checkboxes
+        if (!marketingOptIn.checked || !transactionalOptIn.checked) {
+          errorMessage.textContent = 'Please agree to both SMS opt-in checkboxes before submitting.';
+          errorMessage.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+          return;
+        }
+  
+        const makeWebhookUrl = 'https://hook.us2.make.com/k92h9keuxj88m49dirrtfo3jbnlyi5za';
+  
         try {
-          response = JSON.parse(text);
-          console.log('Make response:', response);
-          if (response.status === 'success') {
-            window.location.href = 'success.html';
-          } else {
-            throw new Error('No match');
+          const payload = {
+            firstName: data.firstName || '',
+            lastName: data.lastName || '',
+            email: data.email || '',
+            phone: rawPhone,
+            marketingOptIn: marketingOptIn.checked ? 'Yes' : 'No',
+            transactionalOptIn: transactionalOptIn.checked ? 'Yes' : 'No',
+            timestamp: timestamp
+          };
+  
+          console.log("Sending payload to Make:", payload);
+  
+          const response = await fetch(makeWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+  
+          const raw = await response.text();
+          let result;
+          try {
+            result = JSON.parse(raw);
+          } catch (err) {
+            result = null;
           }
+  
+          if (response.ok && result?.status === "success") {
+            window.location.href = "success.html";
+            return;
+          }
+  
+          if (result?.status === "not_found") {
+            errorMessage.textContent = "Sorry, we couldn't find you in our system.";
+          } else {
+            console.error("Unexpected response from Make:", raw);
+            errorMessage.textContent = "Something went wrong. Please try again later.";
+          }
+  
+          errorMessage.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+  
         } catch (err) {
-          console.error('Invalid response from Make:', err, text);
-          errorMessage.textContent = "We couldn't process your info. Please check your details or call your rep.";
+          console.error('Error:', err);
+          errorMessage.textContent = "Something went wrong. Please try again later or call your sales rep at (858) 555-3421.";
           errorMessage.style.display = 'block';
           submitBtn.disabled = false;
           submitBtn.textContent = 'Submit';
         }
-
-      } catch (err) {
-        console.error('Error:', err);
-        errorMessage.textContent = "Something went wrong. Please try again later or call your sales rep at (858) 555-3421.";
-        errorMessage.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit';
-      }
+      });
     });
-  });
-</script>
+  </script>
+  
+  
+  
+  
 </body>
 </html>
