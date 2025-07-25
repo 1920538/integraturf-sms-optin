@@ -1,147 +1,189 @@
-<!-- Full code unchanged except for the added `operation: "sms_optin_submit"` line in the payload -->
-...
-<script>
-  function formatPhoneForAirtable(raw) {
-    const digits = raw.replace(/\D/g, '');
-    if (digits.length !== 10) return raw;
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  }
-
-  window.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('optin-form');
-    const submitBtn = document.getElementById('submitBtn');
-    const errorMessage = document.getElementById('errorMessage');
-    const phoneInput = document.querySelector('input[name="phone"]');
-    const emailInput = document.querySelector('input[name="email"]');
-
-    const marketingOptIn = form.querySelector('input[name="marketing_optin"]');
-    const transactionalOptIn = form.querySelector('input[name="transactional_optin"]');
-
-    emailInput.insertAdjacentHTML('afterend', '<div class="inline-error" id="emailError"></div>');
-    phoneInput.insertAdjacentHTML('afterend', '<div class="inline-error" id="phoneError"></div>');
-    const emailError = document.getElementById('emailError');
-    const phoneError = document.getElementById('phoneError');
-
-    let rawPhone = '';
-
-    phoneInput.addEventListener('input', (e) => {
-      rawPhone = e.target.value.replace(/\D/g, '').slice(0, 10);
-      const parts = [];
-      if (rawPhone.length > 0) parts.push('(' + rawPhone.slice(0, 3));
-      if (rawPhone.length >= 4) parts.push(') ' + rawPhone.slice(3, 6));
-      if (rawPhone.length >= 7) parts.push('-' + rawPhone.slice(6));
-      e.target.value = parts.join('').replace(/\(\)/g, '');
-
-      if (rawPhone.length !== 10 && rawPhone !== '') {
-        phoneError.textContent = 'Phone number must be 10 digits.';
-        phoneError.style.display = 'block';
-      } else {
-        phoneError.style.display = 'none';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMS Opt-In Form - IntegriTurf</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      box-sizing: border-box;
+      overflow-x: hidden;
+    }
+    .form-container {
+      max-width: 90%;
+      width: 100%;
+      padding: 20px;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+    h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #2c2c2c;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"] {
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    label {
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #333;
+    }
+    .checkbox-group {
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    .checkbox-group input {
+      margin-right: 10px;
+    }
+    button {
+      background: linear-gradient(135deg, #7CB342 0%, #689F38 100%);
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .error-message {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #d32f2f;
+      display: none;
+      text-align: center;
+    }
+    .privacy-note {
+      margin-top: 15px;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+    }
+    .privacy-note a {
+      color: #7CB342;
+      text-decoration: none;
+    }
+    @media (max-width: 600px) {
+      .form-container {
+        padding: 16px;
       }
-    });
-
-    emailInput.addEventListener('input', () => {
-      const value = emailInput.value.trim();
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-      if (value === '') {
-        emailError.style.display = 'none';
-      } else if (!emailPattern.test(value)) {
-        emailError.textContent = 'Please enter a valid email address.';
-        emailError.style.display = 'block';
-      } else {
-        emailError.style.display = 'none';
+      label {
+        font-size: 14px;
+        line-height: 1.5;
       }
-    });
-
-    form.addEventListener('submit', async function (e) {
-      e.preventDefault();
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting...';
-      errorMessage.style.display = 'none';
-
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData);
-      const timestamp = new Date().toISOString();
-
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailPattern.test(data.email)) {
-        emailError.textContent = 'Please enter a valid email address.';
-        emailError.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit';
-        return;
+      input[type="checkbox"] {
+        transform: scale(1.2);
+        margin-right: 8px;
       }
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>Please provide your contact details</h2>
+    <form id="optin-form">
+      <label for="firstName">First Name*</label>
+      <input type="text" name="firstName" required>
 
-      if (rawPhone.length !== 10) {
-        phoneError.textContent = 'Phone number must be 10 digits.';
-        phoneError.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit';
-        return;
-      }
+      <label for="lastName">Last Name*</label>
+      <input type="text" name="lastName" required>
 
-      if (!marketingOptIn.checked || !transactionalOptIn.checked) {
-        errorMessage.textContent = 'Please agree to both SMS opt-in checkboxes before submitting.';
-        errorMessage.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit';
-        return;
-      }
+      <label for="email">Email*</label>
+      <input type="email" name="email" id="email" required>
 
-      const makeWebhookUrl = 'https://hook.us2.make.com/j158s4uo0wpdjmw185saw5962p16qsmf';
+      <label for="phone">Phone Number*</label>
+      <input type="tel" name="phone" id="phone" required>
 
-      try {
-        const payload = {
-          operation: "sms_optin_submit",  // ✅ Added identifier for Make.com
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          email: data.email || '',
-          phone: rawPhone,
-          marketingOptIn: marketingOptIn.checked ? 'Yes' : 'No',
-          transactionalOptIn: transactionalOptIn.checked ? 'Yes' : 'No',
-          timestamp: timestamp
-        };
+      <div class="checkbox-group">
+        <label>
+          <input type="checkbox" name="marketing_optin">
+          I authorize Integrituf to send text messages (marketing/promotional).
+        </label>
+      </div>
 
-        const response = await fetch(makeWebhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+      <div class="checkbox-group">
+        <label>
+          <input type="checkbox" name="transactional_optin">
+          I authorize Integrituf to send account-related text messages.
+        </label>
+      </div>
 
-        const raw = await response.text();
-        let result;
-        try {
-          result = JSON.parse(raw);
-        } catch (err) {
-          result = null;
-        }
+      <button type="submit" id="submitBtn">Submit</button>
+      <div class="error-message" id="errorMessage"></div>
+    </form>
+    <div class="privacy-note">
+      By providing your phone number you agree to receive informational text messages from IntegriTurf. View our <a href="privacy.html">Privacy Policy</a>
+    </div>
+  </div>
 
-        if (response.ok && result?.status === "success") {
-          window.location.href = "success.html";
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('optin-form');
+      const errorMessage = document.getElementById('errorMessage');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = Object.fromEntries(new FormData(form));
+        const timestamp = new Date().toISOString();
+        const phoneDigits = data.phone.replace(/\D/g, '');
+
+        if (phoneDigits.length !== 10) {
+          errorMessage.textContent = "Phone number must be 10 digits.";
+          errorMessage.style.display = 'block';
           return;
         }
 
-        if (result?.status === "not_found") {
-          errorMessage.textContent = "Sorry, we couldn't find you in our system.";
-        } else {
-          console.error("Unexpected response from Make:", raw);
+        const payload = {
+          operation: "sms_optin_submit",
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: phoneDigits,
+          marketingOptIn: data.marketing_optin ? "Yes" : "No",
+          transactionalOptIn: data.transactional_optin ? "Yes" : "No",
+          timestamp: timestamp
+        };
+
+        try {
+          const res = await fetch("https://hook.us2.make.com/j158s4uo0wpdjmw185saw5962p16qsmf", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) throw new Error("Non-200 response");
+
+          window.location.href = "success.html";
+        } catch (err) {
+          console.error(err);
           errorMessage.textContent = "Something went wrong. Please try again later.";
+          errorMessage.style.display = 'block';
         }
-
-        errorMessage.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit';
-
-      } catch (err) {
-        console.error('Error:', err);
-        errorMessage.textContent = "Something went wrong. Please try again later or call your sales rep at (858) 555-3421.";
-        errorMessage.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit';
-      }
+      });
     });
-  });
-</script>
-...
+  </script>
+</body>
+</html>
